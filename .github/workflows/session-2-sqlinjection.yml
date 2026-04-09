@@ -1,10 +1,10 @@
-name: "Session 1 — Path Traversal"
+name: "Session 2 — SQL Injection"
 
 on:
   push:
     branches: [main]
     paths:
-      - "FixItFriday/Session-1-PathTraversal/**"
+      - "FixItFriday/Session-2-SQLInjection/**"
   workflow_dispatch:
 
 permissions:
@@ -13,9 +13,9 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/fixitfriday/session-1-pathtraversal
+  IMAGE_NAME: ${{ github.repository }}/fixitfriday/session-2-sqlinjection
   PROJECT_ROOT: FixItFriday
-  SESSION_DIR: Session-1-PathTraversal
+  SESSION_DIR: Session-2-SQLInjection
   JAVA_VERSION: "17"
 
 jobs:
@@ -71,8 +71,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            S1_FLAG1=${{ vars.S1_FLAG1 }}
-            S1_FLAG2=${{ vars.S1_FLAG2 }}
-            APP_USER=${{ vars.RUN_AS_ROOT == 'true' && 'root' || 'appuser' }}
+            S2_FLAG=${{ vars.S2_FLAG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

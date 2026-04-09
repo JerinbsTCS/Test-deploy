@@ -10,8 +10,8 @@
         <version>3.2.0</version> <relativePath/> 
     </parent>
 
-    <groupId>com.owasp.lab</groupId>
-    <artifactId>owasp-master-parent</artifactId>
+    <groupId>com.fixitfriday.lab</groupId>
+    <artifactId>fixitfriday-master-parent</artifactId>
     <version>1.0.0</version>
     <packaging>pom</packaging>
 
@@ -21,6 +21,7 @@
 
     <modules>
         <module>Session-1-PathTraversal</module>
+        <module>Session-2-SQLInjection</module>
     </modules>
 
     <build>

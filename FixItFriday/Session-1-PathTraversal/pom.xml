@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.owasp.lab</groupId>
-        <artifactId>owasp-master-parent</artifactId>
+        <groupId>com.fixitfriday.lab</groupId>
+        <artifactId>fixitfriday-master-parent</artifactId>
         <version>1.0.0</version>
         <relativePath>../pom.xml</relativePath> </parent>
 
@@ -17,12 +17,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-devtools</artifactId>
-            <optional>true</optional>
         </dependency>
 
         <dependency>
