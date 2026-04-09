@@ -1,0 +1,39 @@
+site_name: FixItFriday
+site_description: Weekly sessions demonstrating security issues caused by first-party code vulnerabilities.
+theme:
+  name: material
+  palette:
+    scheme: slate
+    primary: deep orange
+    accent: orange
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.suggest
+    - content.tabs.link
+  icon:
+    logo: material/shield-bug
+nav:
+  - Home: index.md
+  - Sessions:
+    - Path Traversal (2026-03-13): sessions/2026-03-13.md
+  - References:
+    - OWASP Top 10: reference/owasp-top-10.md
+plugins:
+  - search
+copyright: Found an inconsistency? Report it to <b>jerin.bs</b>
+extra:
+  generator: false
+markdown_extensions:
+  - admonition
+  - attr_list
+  - tables
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
