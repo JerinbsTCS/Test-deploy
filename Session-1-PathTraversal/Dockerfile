@@ -2,7 +2,7 @@ FROM eclipse-temurin:17-jdk-alpine
 
 WORKDIR /app
 
-ARG RUN_AS_ROOT=false
+ARG APP_USER=appuser
 
 ARG S1_FLAG1
 
@@ -20,8 +20,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 RUN chown -R appuser:appgroup /app
 
-USER ${RUN_AS_ROOT#true} root
-USER ${RUN_AS_ROOT#false} appuser
+USER ${APP_USER}
 
 EXPOSE 8080
 

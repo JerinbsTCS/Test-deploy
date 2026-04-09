@@ -69,6 +69,6 @@ jobs:
           build-args: |
             S1_FLAG1=${{ vars.S1_FLAG1 }}
             S1_FLAG2=${{ vars.S1_FLAG2 }}
-            RUN_AS_ROOT=${{ vars.RUN_AS_ROOT }}
+            APP_USER=${{ vars.RUN_AS_ROOT == 'true' && 'root' || 'appuser' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
