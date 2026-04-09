@@ -13,7 +13,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: fixitfriday/session-1-pathtraversal
+  IMAGE_NAME: ${{ github.repository_owner }}/session-1-pathtraversal
   PROJECT_ROOT: FixItFriday
   SESSION_DIR: Session-1-PathTraversal
   JAVA_VERSION: "17"
