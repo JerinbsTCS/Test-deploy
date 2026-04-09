@@ -1,0 +1,29 @@
+# --- Compiled files ---
+*.class
+**/target/
+**/build/
+
+# --- Maven Wrapper ---
+# We want the script and the config, but usually NOT the jar itself 
+# (though many prefer to commit it for "zero-install" builds)
+# If you want students to just "clone and run", uncomment the next line:
+# !.mvn/wrapper/maven-wrapper.jar
+
+# --- IDEs ---
+.idea/
+*.iml
+*.iws
+.project
+.settings/
+.classpath
+.nb-configuration.xml
+*.swp
+*.DS_Store
+
+# --- Docker ---
+.docker/
+# Ignore local env files that might contain secrets
+.env
+
+# --- Log files ---
+*.log

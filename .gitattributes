@@ -1,0 +1,16 @@
+# Handle line endings automatically for files detected as text 
+# and leave binary files alone.
+* text=auto
+
+# Force LF (Linux) line endings for the Maven wrapper script
+# This prevents "env: sh\r: No such file or directory" errors in Docker
+mvnw text eol=lf
+
+# Standard Java/XML files
+*.java text
+*.xml text
+*.properties text
+
+# Ensure Windows batch files keep CRLF
+*.cmd text eol=crlf
+*.bat text eol=crlf
