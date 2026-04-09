@@ -20,6 +20,7 @@ env:
 jobs:
   build-and-push:
     name: Build & Push Image
+    environment: FixItFriday
     runs-on: ubuntu-latest
 
     steps:
@@ -56,7 +57,6 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=sha,prefix=
-            type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
@@ -66,5 +66,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            S1_FLAG1=${{ vars.S1_FLAG1 }}
+            S1_FLAG2=${{ vars.S1_FLAG2 }}
+            RUN_AS_ROOT=${{ vars.RUN_AS_ROOT }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

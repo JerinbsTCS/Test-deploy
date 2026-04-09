@@ -4,9 +4,9 @@ WORKDIR /app
 
 ARG RUN_AS_ROOT=false
 
-ARG S1_FLAG1="flag{P4th_Tr4v3r5s4l_Bug_F0und!}"
+ARG S1_FLAG1
 
-ARG S1_FLAG2="flag{P4th_Tr4v3r5s4l_0n_r00t_15_fun}"
+ARG S1_FLAG2
 
 COPY target/*.jar app.jar
 
