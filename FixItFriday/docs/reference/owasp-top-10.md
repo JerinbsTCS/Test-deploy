@@ -12,7 +12,7 @@ The OWASP Top 10 is a standard awareness document for web application security. 
 | A02 | **Security Misconfiguration** | — |
 | A03 | **Software Supply Chain Failures** | — |
 | A04 | **Cryptographic Failures** | — |
-| A05 | **Injection** | — |
+| A05 | **Injection** | [SQL Injection](../sessions/session-2-sqli.md), [XXE](../sessions/session-3-xxe.md) |
 | A06 | **Insecure Design** | — |
 | A07 | **Authentication Failures** | — |
 | A08 | **Software and Data Integrity Failures** | — |

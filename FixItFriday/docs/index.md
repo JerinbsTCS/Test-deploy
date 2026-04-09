@@ -20,4 +20,7 @@ Every Friday, we pick a real-world vulnerability class, spin up a purposely vuln
 ## Quick Links
 
 - [Sessions](sessions/2026-03-13.md) — Browse past and upcoming FixItFriday sessions
+  - [Session 1 — Path Traversal](sessions/2026-03-13.md)
+  - [Session 2 — SQL Injection](sessions/session-2-sqli.md)
+  - [Session 3 — XXE](sessions/session-3-xxe.md)
 - [Reference](reference/owasp-top-10.md) — Security topic deep-dives (OWASP Top 10, etc.)

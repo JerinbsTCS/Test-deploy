@@ -18,7 +18,9 @@ theme:
 nav:
   - Home: index.md
   - Sessions:
-    - Path Traversal (2026-03-13): sessions/2026-03-13.md
+    - "Session 1 — Path Traversal (2026-03-13)": sessions/2026-03-13.md
+    - "Session 2 — SQL Injection": sessions/session-2-sqli.md
+    - "Session 3 — XXE": sessions/session-3-xxe.md
   - References:
     - OWASP Top 10: reference/owasp-top-10.md
 plugins:
