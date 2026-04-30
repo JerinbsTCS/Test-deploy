@@ -23,6 +23,7 @@
         <module>Session-1-PathTraversal</module>
         <module>Session-2-SQLInjection</module>
         <module>Session-3-XXE</module>
+        <module>Session-4-InsecureCrypto</module>
     </modules>
 
     <build>

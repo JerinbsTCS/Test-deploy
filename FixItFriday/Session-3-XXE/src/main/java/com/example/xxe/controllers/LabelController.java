@@ -33,9 +33,12 @@ public class LabelController {
             
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             dbf.setNamespaceAware(true);
+            dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
             Document labelDesign = dbf.newDocumentBuilder().parse(new ByteArrayInputStream(xsltPayload.getBytes()));
 
-            Transformer transformer = compileXSLTVulnerable(labelDesign);
+            // Transformer transformer = compileXSLTVulnerable(labelDesign);
+            Transformer transformer = compileXSLTSecure(labelDesign);
             
             StringWriter writer = new StringWriter();
             transformer.transform(new StreamSource(productStream), new StreamResult(writer));

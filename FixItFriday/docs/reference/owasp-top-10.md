@@ -11,7 +11,7 @@ The OWASP Top 10 is a standard awareness document for web application security. 
 | A01 | **Broken Access Control** | [Path Traversal](../sessions/2026-03-13.md) |
 | A02 | **Security Misconfiguration** | — |
 | A03 | **Software Supply Chain Failures** | — |
-| A04 | **Cryptographic Failures** | — |
+| A04 | **Cryptographic Failures** | [Insecure Cryptography](../sessions/session-4-crypto.md) |
 | A05 | **Injection** | [SQL Injection](../sessions/session-2-sqli.md), [XXE](../sessions/session-3-xxe.md) |
 | A06 | **Insecure Design** | — |
 | A07 | **Authentication Failures** | — |
