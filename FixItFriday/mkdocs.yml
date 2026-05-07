@@ -22,8 +22,10 @@ nav:
     - "Session 2 — SQL Injection": sessions/session-2-sqli.md
     - "Session 3 — XXE": sessions/session-3-xxe.md
     - "Session 4 — Insecure Cryptography": sessions/session-4-crypto.md
+    - "Session 5 — IDOR": sessions/session-5-idor.md
   - References:
     - OWASP Top 10: reference/owasp-top-10.md
+    - Semgrep Local Setup: reference/semgrep-local-setup.md
 plugins:
   - search
 copyright: Found an inconsistency? Report it to <b>jerin.bs</b>

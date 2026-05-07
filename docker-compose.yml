@@ -1,0 +1,342 @@
+# ──────────────────────────────────────────────────────────────
+# SmartLib - Library Management System — Docker/Podman Compose
+# ──────────────────────────────────────────────────────────────
+#
+# Start all services:
+#   podman-compose up -d
+#
+# Stop all services:
+#   podman-compose down
+#
+# View logs:
+#   podman-compose logs -f
+#
+# NOTE: If behind Zscaler, pull Microsoft images first:
+#   podman pull --tls-verify=false mcr.microsoft.com/mssql/server:2022-latest
+#   podman pull --tls-verify=false mcr.microsoft.com/azure-storage/azurite:latest
+# ──────────────────────────────────────────────────────────────
+
+services:
+
+  # ═══════════════════════════════════════════════════════════
+  # DATA STORES
+  # ═══════════════════════════════════════════════════════════
+
+  # ─── SQL Server 2022 ────────────────────────────────────
+  # Stores: books, members, loans, reservations, fines
+  # Connect: localhost,1433 | sa / (see .env)
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sqlserver
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ./init/sqlserver/seed.sql:/seed/seed.sql:ro
+      - ./init/sqlserver/entrypoint.sh:/seed/entrypoint.sh:ro
+    entrypoint: ["/bin/bash", "/seed/entrypoint.sh"]
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "${MSSQL_SA_PASSWORD}" -Q "SELECT 1" -C -N || exit 1
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ─── MongoDB 7.0 ───────────────────────────────────────
+  # Stores: audit_events, book_reviews, reading_history
+  # Connect: mongodb://localhost:27018/smartlibdb
+  mongodb:
+    image: docker.io/library/mongo:7.0
+    container_name: mongodb
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis 7 ───────────────────────────────────────────
+  # Stores: search cache, book availability, dashboard stats, popular books
+  # Connect: localhost:6379
+  redis:
+    image: docker.io/library/redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Azurite (Azure Blob Storage Emulator) ─────────────
+  # Stores: book covers, ebooks, member photos, reports
+  # Blob: localhost:10000 | Queue: 10001 | Table: 10002
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: azurite
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+      - "10002:10002"
+    volumes:
+      - azurite_data:/data
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 -l /data
+
+  # ═══════════════════════════════════════════════════════════
+  # EVENT STREAMING & MESSAGING
+  # ═══════════════════════════════════════════════════════════
+
+  # ─── Zookeeper (Kafka dependency) ──────────────────────
+  zookeeper:
+    image: docker.io/confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+    healthcheck:
+      test: echo ruok | nc localhost 2181 | grep imok
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ─── Kafka ─────────────────────────────────────────────
+  # Topics: book-events, borrowing-events, member-events
+  # Connect: localhost:9092
+  kafka:
+    image: docker.io/confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG4J_ROOT_LOGLEVEL: WARN
+    volumes:
+      - kafka_data:/var/lib/kafka
+
+  # ─── Kafka UI ──────────────────────────────────────────
+  # Web UI for browsing topics, messages, consumer groups
+  # URL: http://localhost:8090
+  kafka-ui:
+    image: docker.io/provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8090:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      DYNAMIC_CONFIG_ENABLED: "true"
+
+  # ─── ActiveMQ Classic ──────────────────────────────────
+  # Queues: email-notifications, sms-notifications, in-app-notifications
+  # Broker: localhost:61616 | Web Console: http://localhost:8161 (see .env for creds)
+  activemq:
+    image: docker.io/apache/activemq-classic:5.18.3
+    container_name: activemq
+    ports:
+      - "61616:61616"
+      - "8161:8161"
+    environment:
+      ACTIVEMQ_USERNAME: "${ACTIVEMQ_USERNAME}"
+      ACTIVEMQ_PASSWORD: "${ACTIVEMQ_PASSWORD}"
+    volumes:
+      - activemq_data:/opt/apache-activemq/data
+
+  # ═══════════════════════════════════════════════════════════
+  # EXTERNAL SERVICE MOCKS & TOOLS
+  # ═══════════════════════════════════════════════════════════
+
+  # ─── WireMock (Payment Gateway, ISBN Lookup, SMS stubs) ─
+  # Stubs: POST /api/payments/process, GET /api/isbn/{isbn}
+  # Admin: http://localhost:9091/__admin/mappings
+  wiremock:
+    image: docker.io/wiremock/wiremock:3.5.4
+    container_name: wiremock
+    ports:
+      - "9091:9091"
+    volumes:
+      - ./wiremock:/home/wiremock:Z
+    command: --port 9091 --verbose
+
+  # ─── Adminer (Database Web UI) ───────────────────────
+  # Browse SQL Server data in the browser: http://localhost:8088
+  # System: MS SQL | Server: sqlserver | Username: sa | Password: (see .env) | Database: smartlibdb
+  adminer:
+    image: docker.io/library/adminer:latest
+    container_name: adminer
+    ports:
+      - "8088:8080"
+
+  # ─── Mailpit (SMTP email catcher) ─────────────────────
+  # SMTP: localhost:1025 | Web UI: http://localhost:8025
+  mailpit:
+    image: docker.io/axllent/mailpit:latest
+    container_name: mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    volumes:
+      - mailpit_data:/data
+
+  # ─── SonarQube (Code Quality & Security) ──────────────
+  # Dashboard: http://localhost:9001
+  # Default login: admin / admin
+  # Scan: mvn sonar:sonar -Dsonar.host.url=http://localhost:9001 -Dsonar.token=<token>
+  sonarqube:
+    image: docker.io/library/sonarqube:10.7-community
+    container_name: sonarqube
+    ports:
+      - "9001:9000"
+    environment:
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+
+  # ─── SFTP Server ───────────────────────────────────────
+  # Use case: Library Report Distribution (CSV export/import)
+  # Connect: sftp://${SFTP_USER}:${SFTP_PASSWORD}@localhost:2222
+  # Directories: /home/${SFTP_USER}/upload/reports, /home/${SFTP_USER}/upload/imports
+  sftp:
+    image: docker.io/atmoz/sftp:latest
+    container_name: sftp
+    ports:
+      - "2222:22"
+    volumes:
+      - sftp_data:/home/smartlib/upload
+      - ./init/sftp/fix-permissions.sh:/etc/sftp.d/fix-permissions.sh:ro
+    command: ${SFTP_USER}:${SFTP_PASSWORD}:1001:100:upload/reports,upload/imports
+
+  # ─── FileBrowser (SFTP Web UI) ─────────────────────────
+  # Browse SFTP files in the browser: http://localhost:8085
+  # Login: (see .env for FILEBROWSER_USER / FILEBROWSER_PASSWORD)
+  filebrowser:
+    image: docker.io/filebrowser/filebrowser:latest
+    container_name: filebrowser
+    user: "0:0"
+    ports:
+      - "8085:8085"
+    volumes:
+      - sftp_data:/srv:z
+      - filebrowser_db:/database
+      - ./init/filebrowser/filebrowser.json:/config/settings.json:ro
+    entrypoint: ["/bin/sh", "-c", "/bin/filebrowser config init -d /database/filebrowser.db 2>/dev/null; /bin/filebrowser users add ${FILEBROWSER_USER} ${FILEBROWSER_PASSWORD} --perm.admin -d /database/filebrowser.db 2>/dev/null; /bin/filebrowser --config /config/settings.json"]
+
+  # ─── Azure Service Bus Emulator ────────────────────────
+  # Use case: Member Alert Hub (overdue alerts + broadcast notifications)
+  # AMQP port: 5672 | Namespace: smartlib-ns
+  # NOTE: Pre-pull if behind Zscaler:
+  #   podman pull --tls-verify=false mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+  servicebus-emulator:
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    container_name: servicebus-emulator
+    ports:
+      - "5672:5672"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+      SQL_SERVER: "sqlserver"
+    volumes:
+      - ./init/servicebus/config.json:/ServiceBus_Emulator/ConfigFiles/Config.json:ro
+
+  # ─── Azure Cosmos DB Emulator (NoSQL API) ──────────────
+  # Use case: Library Events (workshops, reading clubs, author visits)
+  # Endpoint: https://localhost:8081 | Explorer: https://localhost:8081/_explorer/index.html
+  # Default Key: C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==
+  # NOTE: Pre-pull if behind Zscaler:
+  #   podman pull --tls-verify=false mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+  cosmosdb:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+    container_name: cosmosdb
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+      - "10250:10250"
+      - "10251:10251"
+      - "10252:10252"
+      - "10253:10253"
+      - "10254:10254"
+    environment:
+      AZURE_COSMOS_EMULATOR_PARTITION_COUNT: 5
+      AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "true"
+      AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE: "127.0.0.1"
+    mem_limit: 3g
+    cpus: 2.0
+    volumes:
+      - cosmosdb_data:/tmp/cosmos/appdata
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsk https://localhost:8081/_explorer/emulator.pem || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+
+  # ─── MongoDB Seed Data ─────────────────────────────────
+  # Imports JSON seed data into MongoDB collections on startup
+  # Runs once then exits — use `podman-compose up mongo-seed` to re-seed
+  # NOTE: Placed last so it doesn't block other services during startup
+  mongo-seed:
+    image: docker.io/library/mongo:7.0
+    container_name: mongo-seed
+    network_mode: host
+    volumes:
+      - ./data-seed:/data-seed/import:z
+    command: >
+      bash -c "
+        echo 'Waiting for MongoDB to be ready...' &&
+        until mongosh --host localhost --port 27018 --eval 'db.runCommand({ping:1}).ok' --quiet 2>/dev/null; do sleep 2; echo '  ...waiting'; done &&
+        echo '🌱 Seeding MongoDB smartlibdb...' &&
+        mongoimport --host localhost --port 27018 --db smartlibdb --collection audit_events --mode=upsert --file /data-seed/import/audit-events.json --jsonArray &&
+        echo '  ✅ audit_events seeded' &&
+        mongoimport --host localhost --port 27018 --db smartlibdb --collection book_reviews --mode=upsert --file /data-seed/import/book-reviews.json --jsonArray &&
+        echo '  ✅ book_reviews seeded' &&
+        (mongoimport --host localhost --port 27018 --db smartlibdb --collection reading_history --mode=upsert --file /data-seed/import/reading-history.json --jsonArray || echo '  ⚠️ reading_history skipped (already seeded)') &&
+        echo '  ✅ reading_history seeded' &&
+        mongoimport --host localhost --port 27018 --db smartlibdb --collection announcements --mode=upsert --file /data-seed/import/announcements.json --jsonArray &&
+        echo '  ✅ announcements seeded' &&
+        mongosh --host localhost --port 27018 --eval 'db = db.getSiblingDB(\"smartlibdb\"); db.audit_events.createIndex({eventType:1,timestamp:-1}); db.reading_history.createIndex({memberId:1},{unique:true,name:\"memberId\"}); print(\"  ✅ Indexes created\")' &&
+        echo '══════════════════════════════════════════' &&
+        echo ' SmartLib MongoDB seed data loaded!' &&
+        echo '══════════════════════════════════════════'
+      "
+
+# ═══════════════════════════════════════════════════════════
+# PERSISTENT VOLUMES
+# ═══════════════════════════════════════════════════════════
+volumes:
+  sqlserver_data:
+  mongodb_data:
+  redis_data:
+  azurite_data:
+  zookeeper_data:
+  kafka_data:
+  activemq_data:
+  mailpit_data:
+  sonarqube_data:
+  sonarqube_logs:
+  sonarqube_extensions:
+  sftp_data:
+  filebrowser_db:
+  cosmosdb_data:

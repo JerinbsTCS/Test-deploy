@@ -24,6 +24,7 @@
         <module>Session-2-SQLInjection</module>
         <module>Session-3-XXE</module>
         <module>Session-4-InsecureCrypto</module>
+        <module>Session-5-IDOR</module>
     </modules>
 
     <build>
