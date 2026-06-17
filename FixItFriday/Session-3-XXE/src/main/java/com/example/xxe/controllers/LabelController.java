@@ -50,11 +50,14 @@ public class LabelController {
     }
 
     /**
-     * VULNERABLE: The Semgrep finding.
-     * Allows External Entities (XXE) via the TransformerFactory.
+     * KB: XXE fix — TransformerFactory with security attributes disabled.
+     * Rule: java.lang.security.audit.xxe.transformerfactory-dtds-not-disabled
      */
     public static Transformer compileXSLTVulnerable(final Document inXslt) throws TransformerConfigurationException {
         TransformerFactory factory = TransformerFactory.newInstance();
+        factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
+        factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
         synchronized (inXslt) {
             return factory.newTransformer(new DOMSource(inXslt));
         }

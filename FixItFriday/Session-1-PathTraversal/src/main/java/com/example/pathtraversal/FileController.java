@@ -1,7 +1,7 @@
 package com.example.pathtraversal;
 
-// import java.nio.file.Path;
-// import java.nio.file.Paths;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import java.io.File;
 
@@ -19,33 +19,19 @@ public class FileController {
 
     @GetMapping("/view")
     public ResponseEntity<Resource> readFile(@RequestParam String filename) {
-        /* VULNERABLE CODE */
-        File file = new File(BASE_PATH + filename);
-        System.out.println("Requested file path: " + file.getAbsolutePath());
-        if (!file.getAbsolutePath().startsWith(new File(BASE_PATH).getAbsolutePath())) {
+        // SECURE CODE — KB: PATH TRAVERSAL fix pattern
+        Path path = Paths.get(BASE_PATH).resolve(filename).normalize().toAbsolutePath();
+        System.out.println("Resolved path: " + path);
+        if (!path.startsWith(Paths.get(BASE_PATH).toAbsolutePath())) {
             throw new SecurityException("Access Denied!");
         }
-        if (!file.exists()) {
+        if (!path.toFile().exists()) {
             return ResponseEntity.status(404).body(null);
         }
 
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_PLAIN)
-                .body(new FileSystemResource(file));
-
-        /* SECURE CODE */
-        // Path path = Paths.get(BASE_PATH).resolve(filename).normalize().toAbsolutePath();
-        // System.out.println("Resolved path: " + path);
-        // if (!path.startsWith(Paths.get(BASE_PATH).toAbsolutePath())) {
-        //     throw new SecurityException("Access Denied!");
-        // }
-        // if (!path.toFile().exists()) {
-        //     return ResponseEntity.status(404).body(null);
-        // }
-
-        // return ResponseEntity.ok()
-        //         .contentType(MediaType.TEXT_PLAIN)
-        //         .body(new FileSystemResource(path.toFile()));
+                .body(new FileSystemResource(path.toFile()));
     }
 
     @GetMapping("/test")

@@ -23,8 +23,15 @@ public class ProductRepository {
     @PersistenceContext
     private EntityManager entityManager;
 
+    // KB: SQL INJECTION fix — allowlist validation; sortColumn is from constant Map (only "name" or "price")
     public List<ProductSummary> findAllSortedUnsafe(String sortBy) {
-        String sql = "SELECT id, name, price FROM products ORDER BY " + sortBy;
+        String normalizedSortBy = sortBy.toLowerCase(Locale.ROOT);
+        String sortColumn = ALLOWED_SORT_COLUMNS.get(normalizedSortBy);
+        if (sortColumn == null) {
+            throw new IllegalArgumentException("Invalid sort column. Allowed values: name, price");
+        }
+        String sql = "SELECT id, name, price FROM products ORDER BY " + sortColumn;
+        // nosemgrep: java.lang.security.audit.formatted-sql-string.formatted-sql-string
         return toProductSummaryList(entityManager.createNativeQuery(sql).getResultList());
     }
 
@@ -35,7 +42,19 @@ public class ProductRepository {
             throw new IllegalArgumentException("Invalid sort column. Allowed values: name, price");
         }
 
+        /*
+         * SECURITY REVIEW: 2026-06-17
+         * RULE: java.lang.security.audit.formatted-sql-string.formatted-sql-string
+         * REVIEWER: GHCP Autonomous Security Agent V2.0
+         *
+         * FALSE POSITIVE JUSTIFICATION:
+         * - sortColumn is derived from ALLOWED_SORT_COLUMNS (a compile-time constant Map)
+         * - It can only be "name" or "price" — never user-controlled input
+         * - SQL ORDER BY cannot use parameterized values; allowlist is the correct mitigation
+         * - KB Reference: SQL INJECTION section — allowlist pattern
+         */
         String sql = "SELECT id, name, price FROM products ORDER BY " + sortColumn;
+        // nosemgrep: java.lang.security.audit.formatted-sql-string.formatted-sql-string
         return toProductSummaryList(entityManager.createNativeQuery(sql).getResultList());
     }
 

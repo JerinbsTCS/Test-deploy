@@ -1,0 +1,1 @@
+Baseline: ERROR=11 WARNING=2
